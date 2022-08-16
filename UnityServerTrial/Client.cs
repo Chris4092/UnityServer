@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 
 namespace UnityServerTrial
@@ -8,11 +9,14 @@ namespace UnityServerTrial
         
         public int id;
         public TCP tcp;
+        public UDP udp;
 
         public Client(int clientId)
         {
             id = clientId;
             tcp = new TCP(id);
+            udp = new UDP(id);
+            //TODO UDP
         }
 
         public class TCP
@@ -135,7 +139,43 @@ namespace UnityServerTrial
             
             
         }
-        
-        
+
+        public class UDP
+        {
+            public IPEndPoint endPoint;
+            public int id;
+
+            public UDP(int id)
+            {
+                this.id = id;
+            }
+
+            public void Connect(IPEndPoint endPoint)
+            {
+                this.endPoint = endPoint;
+                ServerSend.UDPTest(id, "TEST Upd message TEST");
+            }
+
+            public void SendData(Packet packet)
+            {
+                Server.SendUDPData(endPoint, packet);
+            }
+
+            public void HandleData(Packet packetData)
+            {
+                int packetLength = packetData.ReadInt();
+                byte[] packetBytes = packetData.ReadBytes(packetLength);
+                
+                ThreadManager.ExecuteOnMainThread(() =>
+                {
+                    using (Packet packet = new Packet(packetBytes))
+                    {
+                        int packetId = packet.ReadInt();
+                        Server.packetHandlers[packetId](id, packet);
+                    }
+                });
+
+            }
+        }
     }
 }
